@@ -3,7 +3,8 @@
 import { useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
-import { Eye, EyeOff, Lock, Mail, ArrowRight, Wheat } from 'lucide-react'
+import { Eye, EyeOff, Lock, Mail, ArrowRight } from 'lucide-react'
+import Image from 'next/image'
 
 export default function LoginPage() {
     const [email, setEmail] = useState('')
@@ -59,18 +60,37 @@ export default function LoginPage() {
     return (
         <div className="min-h-screen flex items-center justify-center bg-pp-cream relative overflow-hidden">
             {/* Background Decor */}
-            <div className="absolute top-0 right-0 p-20 opacity-5 pointer-events-none">
-                <Wheat className="w-96 h-96 text-pp-brown" />
+            <div className="absolute top-0 right-0 p-20 opacity-[0.03] pointer-events-none select-none">
+                <Image
+                    src="/images/logo.png"
+                    alt="Background Decor"
+                    width={500}
+                    height={500}
+                    className="w-96 h-96 object-contain"
+                />
             </div>
-            <div className="absolute bottom-0 left-0 p-10 opacity-5 pointer-events-none rotate-180">
-                <Wheat className="w-64 h-64 text-pp-brown" />
+            <div className="absolute bottom-0 left-0 p-10 opacity-[0.03] pointer-events-none select-none rotate-12">
+                <Image
+                    src="/images/logo.png"
+                    alt="Background Decor"
+                    width={400}
+                    height={400}
+                    className="w-64 h-64 object-contain"
+                />
             </div>
 
             <div className="w-full max-w-md mx-4 relative z-10">
                 {/* Brand Header */}
                 <div className="text-center mb-8 animate-fade-in-up">
-                    <div className="inline-flex items-center justify-center h-16 w-16 rounded-full bg-pp-gold shadow-lg shadow-pp-gold/30 mb-6 text-pp-brown">
-                        <Wheat className="h-8 w-8" />
+                    <div className="inline-flex items-center justify-center h-24 w-24 rounded-full bg-white shadow-lg shadow-pp-gold/20 mb-6 p-4 ring-1 ring-pp-gold/10">
+                        <Image
+                            src="/images/logo.png"
+                            alt="PanPanocha Logo"
+                            width={100}
+                            height={100}
+                            className="w-full h-full object-contain"
+                            priority
+                        />
                     </div>
                     <h1 className="text-3xl font-bold text-pp-brown font-display uppercase tracking-widest mb-2">
                         PanPanocha

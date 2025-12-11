@@ -57,6 +57,12 @@ export async function middleware(request: NextRequest) {
 
     const { data: { user } } = await supabase.auth.getUser()
 
+
+
+    if (request.nextUrl.pathname === '/') {
+        return NextResponse.redirect(new URL('/portal/login', request.url))
+    }
+
     if (request.nextUrl.pathname.startsWith('/portal')) {
         // Exclude login page from protection
         if (request.nextUrl.pathname === '/portal/login') {
