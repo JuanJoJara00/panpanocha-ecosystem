@@ -9,7 +9,7 @@ export async function GET(request: Request) {
     const next = '/portal/dashboard'
 
     if (code) {
-        const cookieStore = cookies()
+        const cookieStore = await cookies()
 
         // Using credentials from src/lib/supabase.ts
         const supabaseUrl = 'https://dafdejwjgieiuazxmzba.supabase.co'
