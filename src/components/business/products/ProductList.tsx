@@ -29,6 +29,7 @@ import Input from '@/components/ui/Input'
 import Select from '@/components/ui/Select'
 import EmptyState from '@/components/ui/EmptyState'
 import Skeleton from '@/components/ui/Skeleton'
+import ImageUpload from '@/components/ui/ImageUpload'
 
 // Interfaces matching our Supabase schema
 interface Category {
@@ -87,12 +88,47 @@ export default function ProductList() {
     const [branches, setBranches] = useState<Branch[]>([])
     const [branchAvailability, setBranchAvailability] = useState<Record<string, BranchProduct>>({})
 
+    // Branch Filter State
+    const [selectedBranchId, setSelectedBranchId] = useState<string | null>(null)
+    const [productStocks, setProductStocks] = useState<Record<string, number>>({})
+
     // Recipe Builder Modal State
     const [chefHatProduct, setChefHatProduct] = useState<Product | null>(null)
 
     useEffect(() => {
         fetchInitialData()
     }, [])
+
+    useEffect(() => {
+        if (selectedBranchId) {
+            fetchStocks(selectedBranchId)
+        } else {
+            setProductStocks({})
+        }
+    }, [selectedBranchId, branches])
+
+    const fetchStocks = async (branchId: string) => {
+        if (branchId === 'all') {
+            const stocks: Record<string, number> = {}
+            const promises = branches.map(async (b) => {
+                const { data } = await supabase.rpc('get_branch_products_stock', { p_branch_id: b.id })
+                return data || []
+            })
+
+            const results = await Promise.all(promises)
+            results.flat().forEach((item: any) => {
+                stocks[item.product_id] = (stocks[item.product_id] || 0) + item.stock
+            })
+            setProductStocks(stocks)
+        } else {
+            const { data } = await supabase.rpc('get_branch_products_stock', { p_branch_id: branchId })
+            if (data) {
+                const map: Record<string, number> = {}
+                data.forEach((item: any) => map[item.product_id] = item.stock)
+                setProductStocks(map)
+            }
+        }
+    }
 
     const fetchInitialData = async () => {
         setLoading(true)
@@ -120,43 +156,31 @@ export default function ProductList() {
 
     const fetchBranches = async () => {
         const { data } = await supabase.from('branches').select('id, name').order('name')
-        if (data) setBranches(data)
+        if (data) {
+            setBranches(data)
+            // Default to first branch if available to show stock context immediately
+            if (data.length > 0) setSelectedBranchId(data[0].id)
+        }
     }
-
-    // --- Product CRUD ---
 
     const handleProductSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
         try {
-            // Validate payload
-            const payload = {
-                ...formData,
-                category_id: formData.category_id || null
-            }
-
-            if (!payload.category_id) {
-                alert('Por favor selecciona una categoría')
-                return
-            }
+            const payload = { ...formData, category_id: formData.category_id || null }
+            if (!payload.category_id) { alert('Por favor selecciona una categoría'); return }
 
             if (editingProduct) {
-                const { error } = await supabase
-                    .from('products')
-                    .update(payload)
-                    .eq('id', editingProduct.id)
+                const { error } = await supabase.from('products').update(payload).eq('id', editingProduct.id)
                 if (error) throw error
             } else {
-                const { error } = await supabase
-                    .from('products')
-                    .insert([payload])
+                const { error } = await supabase.from('products').insert([payload])
                 if (error) throw error
             }
             fetchProducts()
             setIsModalOpen(false)
             resetForm()
         } catch (error: any) {
-            console.error('Error saving product:', error)
-            alert('Error al guardar producto: ' + (error.message || error))
+            alert('Error al guardar: ' + error.message)
         }
     }
 
@@ -331,6 +355,14 @@ export default function ProductList() {
             />
 
 
+            {/* Branch Tabs */}
+            <ModuleTabs
+                tabs={branches.map(b => ({ id: b.id, label: b.name }))}
+                activeTabId={selectedBranchId || 'all'}
+                onTabChange={setSelectedBranchId}
+                labelAll="Todas las sedes"
+            />
+
             {/* Category Tabs */}
             <ModuleTabs
                 tabs={categories.map(c => ({ id: c.id, label: c.name }))}
@@ -361,78 +393,89 @@ export default function ProductList() {
                     />
                 ) : (
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                        {filteredProducts.map(product => (
-                            <Card key={product.id} className="overflow-hidden hover:shadow-md transition-shadow group flex flex-col p-0 border border-gray-200">
-                                {/* Image Placeholder */}
-                                <div className="h-40 bg-gray-100 flex items-center justify-center relative shrink-0">
-                                    {product.image_url ? (
-                                        <img src={product.image_url} alt={product.name} className="w-full h-full object-cover" />
-                                    ) : (
-                                        <ImageIcon className="h-10 w-10 text-gray-300" />
-                                    )}
-                                    <div className="absolute top-2 right-2">
-                                        <Badge variant={product.active ? 'success' : 'neutral'} className="shadow-sm">
-                                            {product.active ? 'Activo' : 'Inactivo'}
-                                        </Badge>
-                                    </div>
-                                </div>
-
-                                <div className="p-4 flex-grow flex flex-col">
-                                    <div className="mb-2">
-                                        <h3 className="font-bold text-gray-800 line-clamp-1 text-lg font-display" title={product.name}>{product.name}</h3>
-                                        <p className="text-xs text-pp-brown/70 font-medium">{product.category?.name || 'Sin Categoría'}</p>
+                        {filteredProducts.map(product => {
+                            const stock = productStocks[product.id]
+                            return (
+                                <Card key={product.id} className="overflow-hidden hover:shadow-md transition-shadow group flex flex-col p-0 border border-gray-200">
+                                    {/* Image Placeholder */}
+                                    <div className="h-40 bg-gray-100 flex items-center justify-center relative shrink-0">
+                                        {product.image_url ? (
+                                            <img src={product.image_url} alt={product.name} className="w-full h-full object-cover" />
+                                        ) : (
+                                            <ImageIcon className="h-10 w-10 text-gray-300" />
+                                        )}
+                                        <div className="absolute top-2 right-2">
+                                            <Badge variant={product.active ? 'success' : 'neutral'} className="shadow-sm">
+                                                {product.active ? 'Activo' : 'Inactivo'}
+                                            </Badge>
+                                        </div>
                                     </div>
 
-                                    <div className="mt-auto flex items-end justify-between">
-                                        <span className="font-bold text-xl text-gray-900 font-display">
-                                            ${product.price?.toLocaleString()}
-                                        </span>
-                                    </div>
-                                </div>
+                                    <div className="p-4 flex-grow flex flex-col">
+                                        <div className="mb-2">
+                                            <h3 className="font-bold text-gray-800 line-clamp-1 text-lg font-display" title={product.name}>{product.name}</h3>
+                                            <p className="text-xs text-pp-brown/70 font-medium">{product.category?.name || 'Sin Categoría'}</p>
+                                        </div>
 
-                                {/* Actions Footer */}
-                                <div className="p-3 bg-gray-50 border-t flex justify-between items-center gap-2 opacity-100 sm:opacity-0 group-hover:opacity-100 transition-opacity">
-                                    <Button
-                                        onClick={() => openAvailabilityModal(product)}
-                                        size="sm"
-                                        variant="outline"
-                                        className="flex-1 text-xs h-8 border-gray-300 text-gray-600 hover:bg-gray-100" // Override brand outline for secondary action
-                                        startIcon={<Store className="h-3 w-3" />}
-                                    >
-                                        Sedes
-                                    </Button>
-                                    <div className="flex gap-1">
-                                        <Button
-                                            onClick={() => setChefHatProduct(product)}
-                                            size="sm"
-                                            variant="ghost"
-                                            className="h-8 w-8 p-0 text-pp-brown hover:bg-pp-gold/10"
-                                            title="Editar Receta"
-                                        >
-                                            <ChefHat className="h-4 w-4" />
-                                        </Button>
-                                        <Button
-                                            onClick={() => openEdit(product)}
-                                            size="sm"
-                                            variant="ghost"
-                                            className="h-8 w-8 p-0 text-gray-600 hover:bg-gray-100"
-                                            title="Editar"
-                                        >
-                                            <Edit2 className="h-4 w-4" />
-                                        </Button>
-                                        <Button
-                                            onClick={() => handleDeleteProduct(product.id)}
-                                            size="sm"
-                                            variant="ghost"
-                                            className="h-8 w-8 p-0 text-red-600 hover:bg-red-50"
-                                            title="Eliminar"
-                                        >
-                                            <Trash2 className="h-4 w-4" />
-                                        </Button>
+                                        <div className="mt-auto flex items-end justify-between">
+                                            <div>
+                                                <span className="font-bold text-xl text-gray-900 font-display block">
+                                                    ${product.price?.toLocaleString()}
+                                                </span>
+                                                {selectedBranchId && (
+                                                    <span className={`text-sm font-bold px-2 py-1 rounded-md ${(stock || 0) > 0 ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+                                                        }`}>
+                                                        {(stock !== undefined) ? `Stock: ${stock}` : 'Sin Receta'}
+                                                    </span>
+                                                )}
+                                            </div>
+                                        </div>
                                     </div>
-                                </div>
-                            </Card>
-                        ))}
+
+                                    {/* Actions Footer */}
+                                    <div className="p-3 bg-gray-50 border-t flex justify-between items-center gap-2 opacity-100 sm:opacity-0 group-hover:opacity-100 transition-opacity">
+                                        <Button
+                                            onClick={() => openAvailabilityModal(product)}
+                                            size="sm"
+                                            variant="outline"
+                                            className="flex-1 text-xs h-8 border-gray-300 text-gray-600 hover:bg-gray-100"
+                                            startIcon={<Store className="h-3 w-3" />}
+                                        >
+                                            Sedes
+                                        </Button>
+                                        <div className="flex gap-1">
+                                            <Button
+                                                onClick={() => setChefHatProduct(product)}
+                                                size="sm"
+                                                variant="ghost"
+                                                className="h-8 w-8 p-0 text-pp-brown hover:bg-pp-gold/10"
+                                                title="Editar Receta"
+                                            >
+                                                <ChefHat className="h-4 w-4" />
+                                            </Button>
+                                            <Button
+                                                onClick={() => openEdit(product)}
+                                                size="sm"
+                                                variant="ghost"
+                                                className="h-8 w-8 p-0 text-gray-600 hover:bg-gray-100"
+                                                title="Editar"
+                                            >
+                                                <Edit2 className="h-4 w-4" />
+                                            </Button>
+                                            <Button
+                                                onClick={() => handleDeleteProduct(product.id)}
+                                                size="sm"
+                                                variant="ghost"
+                                                className="h-8 w-8 p-0 text-red-600 hover:bg-red-50"
+                                                title="Eliminar"
+                                            >
+                                                <Trash2 className="h-4 w-4" />
+                                            </Button>
+                                        </div>
+                                    </div>
+                                </Card>
+                            )
+                        })}
                     </div>
                 )
             }
@@ -484,6 +527,12 @@ export default function ProductList() {
                         />
                         <label htmlFor="active" className="text-sm text-gray-700 font-medium cursor-pointer">Producto Activo Globalmente</label>
                     </div>
+
+                    <ImageUpload
+                        value={formData.image_url}
+                        onChange={(url) => setFormData({ ...formData, image_url: url })}
+                        folder="catalog"
+                    />
 
                     <div className="flex justify-end gap-3 mt-6 pt-4 border-t">
                         <Button type="button" onClick={() => setIsModalOpen(false)} variant="ghost">Cancelar</Button>

@@ -89,7 +89,7 @@ export default function DashboardPage() {
             <div className="flex flex-col items-center justify-center text-center gap-4 py-8 animate-fade-in-up">
                 <div className="relative h-24 w-24 shrink-0 transition-transform hover:scale-105 duration-300">
                     <img
-                        src="/images/logo.png"
+                        src="/images/logo_v2.png"
                         alt="Portal PanPanocha"
                         className="object-contain drop-shadow-sm w-full h-full"
                     />

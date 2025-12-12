@@ -10,7 +10,7 @@ export default function PageHeader({ title, subtitle }: PageHeaderProps) {
         <div className="flex items-center gap-4 mb-6">
             <div className="relative h-12 w-12 shrink-0">
                 <Image
-                    src="/images/logo.png"
+                    src="/images/logo_v2.png"
                     alt="Logo PanPanocha"
                     fill
                     className="object-contain"

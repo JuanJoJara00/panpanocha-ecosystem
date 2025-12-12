@@ -178,7 +178,7 @@ export default function InventoryList() {
             ? item.branch_inventory?.some(bi => bi.branch_id === selectedBranchId)
             : true
 
-        return matchesSearch && (showAllItems || isAssignedToBranch)
+        return matchesSearch && (showAllItems || isAssignedToBranch || searchTerm !== '')
     })
 
     if (loading) return (

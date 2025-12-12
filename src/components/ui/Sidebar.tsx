@@ -50,19 +50,16 @@ export default function Sidebar() {
     }
 
     // Must match main dashboard options
+    // Must match main dashboard options
     const navigation = [
         { name: 'Menú Principal', href: '/portal/dashboard', icon: LayoutDashboard },
         { name: 'Cierre de Caja', href: '/portal/cierre-caja', icon: DollarSign },
-        { name: 'Inventario', href: '/portal/inventario', icon: Package },
-        { name: 'Pedidos', href: '/portal/pedidos', icon: Truck },
-        { name: 'Productos', href: '/portal/products', icon: ChefHat },
-        { name: 'Proveedores', href: '/portal/proveedores', icon: Users }, // Changed to Users to match Dashboard
-        { name: 'Nómina', href: '/portal/nomina', icon: Wallet },
+        { name: 'Inventario', href: '/portal/inventario-general', icon: Package }, // Hub Inventory + Products 
+        { name: 'Pedidos', href: '/portal/compras', icon: Truck }, // Hub Orders + Supplier
+        { name: 'Gestión', href: '/portal/gestion', icon: BarChart3 }, // Hub Branches + Payroll + Schedule
         { name: 'Domicilios', href: '/portal/domicilios', icon: Bike },
-        { name: 'Rappi', href: '/portal/rappi', icon: ShoppingBag },
         { name: 'Manuales', href: '/portal/manuales', icon: ClipboardList },
-        { name: 'Sedes', href: '/portal/sedes', icon: MapPin },
-        { name: 'Admin', href: '/portal/admin', icon: BarChart3 },
+        { name: 'Admin', href: '/portal/admin', icon: Users },
     ]
 
     return (
@@ -70,7 +67,7 @@ export default function Sidebar() {
             <div className="p-6 flex flex-col items-center justify-center text-center gap-4 border-b border-gray-50/50">
                 <div className="relative h-24 w-24 shrink-0 transition-transform hover:scale-105 duration-300">
                     <Image
-                        src="/images/logo.png"
+                        src="/images/logo_v2.png"
                         alt="Portal PanPanocha"
                         fill
                         className="object-contain drop-shadow-sm"

@@ -231,10 +231,10 @@ export default function PayrollForm({ onSuccess, onCancel, initialEmployee, init
             const lastPayment = lastPayments[0]
             const lastPeriodEnd = new Date(lastPayment.period_end)
 
-            let expectedPeriodStart = new Date(lastPeriodEnd)
+            const expectedPeriodStart = new Date(lastPeriodEnd)
             expectedPeriodStart.setDate(expectedPeriodStart.getDate() + 1)
 
-            let expectedPeriodEnd = new Date(expectedPeriodStart)
+            const expectedPeriodEnd = new Date(expectedPeriodStart)
             switch (employee.salary_type) {
                 case 'daily':
                     expectedPeriodEnd.setDate(expectedPeriodEnd.getDate())

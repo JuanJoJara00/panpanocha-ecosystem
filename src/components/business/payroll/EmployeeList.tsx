@@ -60,7 +60,7 @@ export default function EmployeeList() {
     const fetchEmployees = async () => {
         setLoading(true)
         try {
-            let query = supabase
+            const query = supabase
                 .from('employees')
                 .select(`
                     *,

@@ -62,7 +62,7 @@ export default function LoginPage() {
             {/* Background Decor */}
             <div className="absolute top-0 right-0 p-20 opacity-[0.03] pointer-events-none select-none">
                 <Image
-                    src="/images/logo.png"
+                    src="/images/logo_v2.png"
                     alt="Background Decor"
                     width={500}
                     height={500}
@@ -71,7 +71,7 @@ export default function LoginPage() {
             </div>
             <div className="absolute bottom-0 left-0 p-10 opacity-[0.03] pointer-events-none select-none rotate-12">
                 <Image
-                    src="/images/logo.png"
+                    src="/images/logo_v2.png"
                     alt="Background Decor"
                     width={400}
                     height={400}
@@ -84,7 +84,7 @@ export default function LoginPage() {
                 <div className="text-center mb-8 animate-fade-in-up">
                     <div className="inline-flex items-center justify-center h-24 w-24 rounded-full bg-white shadow-lg shadow-pp-gold/20 mb-6 p-4 ring-1 ring-pp-gold/10">
                         <Image
-                            src="/images/logo.png"
+                            src="/images/logo_v2.png"
                             alt="PanPanocha Logo"
                             width={100}
                             height={100}
@@ -223,6 +223,6 @@ export default function LoginPage() {
                     &copy; 2025 PanPanocha Ecosystem
                 </p>
             </div>
-        </div >
+        </div>
     )
 }
