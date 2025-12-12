@@ -54,7 +54,7 @@ export default function Sidebar() {
     const navigation = [
         { name: 'Menú Principal', href: '/portal/dashboard', icon: LayoutDashboard },
         { name: 'Cierre de Caja', href: '/portal/cierre-caja', icon: DollarSign },
-        { name: 'Inventario', href: '/portal/inventario-general', icon: Package }, // Hub Inventory + Products 
+        { name: 'Inventario materia prima', href: '/portal/inventario-general', icon: Package }, // Hub Inventory + Products 
         { name: 'Pedidos', href: '/portal/compras', icon: Truck }, // Hub Orders + Supplier
         { name: 'Gestión', href: '/portal/gestion', icon: BarChart3 }, // Hub Branches + Payroll + Schedule
         { name: 'Domicilios', href: '/portal/domicilios', icon: Bike },
