@@ -217,7 +217,7 @@ export default function InventoryList() {
 
     return (
         <div className="space-y-6">
-            <PageHeader title="Inventario" subtitle="Gestión de insumos y stock" />
+            <PageHeader title="INVENTARIO MATERIA PRIMA" subtitle="Gestión de insumos y stock" />
             <ModuleHeader
                 searchTerm={searchTerm}
                 onSearchChange={setSearchTerm}

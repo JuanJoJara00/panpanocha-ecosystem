@@ -22,7 +22,7 @@ const modules = [
         description: 'Registrar ventas y cierre del día.',
     },
     {
-        title: 'Inventario materia prima',
+        title: 'Inventario',
         icon: Package,
         href: '/portal/inventario',
         description: 'Gestionar stock e insumos.',
