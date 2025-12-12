@@ -6,8 +6,7 @@ import { supabase } from '@/lib/supabase'
 import Card from '@/components/ui/Card'
 import Button from '@/components/ui/Button'
 import ModuleTabs from '@/components/ui/ModuleTabs'
-import Select from '@/components/ui/Select'
-import { Calendar, Store, Eye, X, FileText } from 'lucide-react'
+import { Calendar, Store, Eye, X, FileText, Search } from 'lucide-react'
 
 // Types
 type BaseClosing = {
@@ -40,112 +39,110 @@ type UnifiedClosing = {
 const formatCurrency = (value: number) => new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(value)
 const formatDate = (dateStr: string) => new Date(dateStr).toLocaleDateString('es-CO', { dateStyle: 'medium' })
 
-// Generate last 12 months for filter
-const getPeriodOptions = () => {
-    const options = []
-    const today = new Date()
-    for (let i = 0; i < 12; i++) {
-        const d = new Date(today.getFullYear(), today.getMonth() - i, 1)
-        const value = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
-        const label = d.toLocaleDateString('es-CO', { month: 'long', year: 'numeric' })
-        options.push({ value, label: label.charAt(0).toUpperCase() + label.slice(1) })
-    }
-    return options
-}
-
 export default function ClosingHistory() {
     const [unifiedClosings, setUnifiedClosings] = useState<UnifiedClosing[]>([])
     const [branches, setBranches] = useState<{ id: string, name: string }[]>([])
 
     // Filters
     const [selectedBranch, setSelectedBranch] = useState<string>('all')
-    const [selectedPeriod, setSelectedPeriod] = useState<string>(new Date().toISOString().slice(0, 7)) // YYYY-MM
+
+    // Date Range State (Default: Current Month)
+    const [startDate, setStartDate] = useState<string>(() => {
+        const date = new Date();
+        return new Date(date.getFullYear(), date.getMonth(), 1).toISOString().split('T')[0];
+    })
+    const [endDate, setEndDate] = useState<string>(() => {
+        return new Date().toISOString().split('T')[0];
+    })
 
     const [loading, setLoading] = useState(true)
     const [selectedUnified, setSelectedUnified] = useState<UnifiedClosing | null>(null)
 
-    // Fetch Data
+    // Initial Load
     useEffect(() => {
-        const fetchData = async () => {
-            setLoading(true)
-
-            // 1. Fetch Branches
-            const { data: branchData } = await supabase.from('branches').select('id, name').order('name')
-            if (branchData) setBranches(branchData)
-
-            // Calculate Period Range
-            const [year, month] = selectedPeriod.split('-').map(Number)
-            const startDate = new Date(year, month - 1, 1).toISOString()
-            const endDate = new Date(year, month, 0, 23, 59, 59).toISOString()
-
-            // 2. Fetch Mys Closings (Filtered by Date)
-            const { data: mysData } = await supabase
-                .from('mys_closings')
-                .select('*, branch:branches(name)')
-                .gte('created_at', startDate)
-                .lte('created_at', endDate)
-                .order('created_at', { ascending: false })
-
-            // 3. Fetch Siigo Closings (Filtered by Date)
-            const { data: siigoData } = await supabase
-                .from('siigo_closings')
-                .select('*, branch:branches(name)')
-                .gte('created_at', startDate)
-                .lte('created_at', endDate)
-                .order('created_at', { ascending: false })
-
-            // 4. Grouping Logic
-            const groups: Record<string, UnifiedClosing> = {}
-
-            const generateKey = (date: string, shift: string, branchId: string) => {
-                const day = new Date(date).toISOString().split('T')[0]
-                return `${day}_${shift}_${branchId}`
-            }
-
-            // Process Mys
-            mysData?.forEach((c: any) => {
-                const key = generateKey(c.created_at, c.shift, c.branch_id)
-                if (!groups[key]) {
-                    groups[key] = {
-                        id: key,
-                        date: c.created_at,
-                        shift: c.shift,
-                        branch_id: c.branch_id,
-                        branch_name: c.branch?.name || 'Sede Desconocida',
-                        mys: c
-                    }
-                } else {
-                    groups[key].mys = c
-                }
-            })
-
-            // Process Siigo
-            siigoData?.forEach((c: any) => {
-                const key = generateKey(c.created_at, c.shift, c.branch_id)
-                if (!groups[key]) {
-                    groups[key] = {
-                        id: key,
-                        date: c.created_at,
-                        shift: c.shift,
-                        branch_id: c.branch_id,
-                        branch_name: c.branch?.name || 'Sede Desconocida',
-                        siigo: c
-                    }
-                } else {
-                    groups[key].siigo = c // Merge into existing group
-                }
-            })
-
-            // Sort by date desc
-            const sorted = Object.values(groups).sort((a, b) =>
-                new Date(b.date).getTime() - new Date(a.date).getTime()
-            )
-
-            setUnifiedClosings(sorted)
-            setLoading(false)
-        }
+        fetchBranches()
         fetchData()
-    }, [selectedPeriod]) // Re-fetch when date changes
+    }, [])
+
+    const fetchBranches = async () => {
+        const { data: branchData } = await supabase.from('branches').select('id, name').order('name')
+        if (branchData) setBranches(branchData)
+    }
+
+    const fetchData = async () => {
+        setLoading(true)
+
+        // Calculate Period Range (Start of startDate to End of endDate)
+        // Adjust strings to generic ISO dates if needed, or rely on supabase date comparison
+        const startISO = new Date(startDate).toISOString()
+        const endISO = new Date(new Date(endDate).setHours(23, 59, 59)).toISOString()
+
+        // 2. Fetch Mys Closings (Filtered by Date)
+        const { data: mysData } = await supabase
+            .from('mys_closings')
+            .select('*, branch:branches(name)')
+            .gte('created_at', startISO)
+            .lte('created_at', endISO)
+            .order('created_at', { ascending: false })
+
+        // 3. Fetch Siigo Closings (Filtered by Date)
+        const { data: siigoData } = await supabase
+            .from('siigo_closings')
+            .select('*, branch:branches(name)')
+            .gte('created_at', startISO)
+            .lte('created_at', endISO)
+            .order('created_at', { ascending: false })
+
+        // 4. Grouping Logic
+        const groups: Record<string, UnifiedClosing> = {}
+
+        const generateKey = (date: string, shift: string, branchId: string) => {
+            const day = new Date(date).toISOString().split('T')[0]
+            return `${day}_${shift}_${branchId}`
+        }
+
+        // Process Mys
+        mysData?.forEach((c: any) => {
+            const key = generateKey(c.created_at, c.shift, c.branch_id)
+            if (!groups[key]) {
+                groups[key] = {
+                    id: key,
+                    date: c.created_at,
+                    shift: c.shift,
+                    branch_id: c.branch_id,
+                    branch_name: c.branch?.name || 'Sede Desconocida',
+                    mys: c
+                }
+            } else {
+                groups[key].mys = c
+            }
+        })
+
+        // Process Siigo
+        siigoData?.forEach((c: any) => {
+            const key = generateKey(c.created_at, c.shift, c.branch_id)
+            if (!groups[key]) {
+                groups[key] = {
+                    id: key,
+                    date: c.created_at,
+                    shift: c.shift,
+                    branch_id: c.branch_id,
+                    branch_name: c.branch?.name || 'Sede Desconocida',
+                    siigo: c
+                }
+            } else {
+                groups[key].siigo = c // Merge into existing group
+            }
+        })
+
+        // Sort by date desc
+        const sorted = Object.values(groups).sort((a, b) =>
+            new Date(b.date).getTime() - new Date(a.date).getTime()
+        )
+
+        setUnifiedClosings(sorted)
+        setLoading(false)
+    }
 
     // Generate Tab Options from Branches
     const tabOptions = branches.map(b => ({ id: b.id, label: b.name }))
@@ -160,14 +157,29 @@ export default function ClosingHistory() {
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <h3 className="font-bold text-gray-700 text-lg">Historial de Cierres (Unificado)</h3>
 
-                {/* Date Filter */}
-                <div className="w-full md:w-48">
-                    <Select
-                        value={selectedPeriod}
-                        onChange={(e) => setSelectedPeriod(e.target.value)}
-                        options={getPeriodOptions()}
-                        fullWidth
-                    />
+                {/* Custom Date Range Filter */}
+                <div className="flex flex-col sm:flex-row gap-2 items-end sm:items-center bg-gray-50 p-2 rounded-xl border border-gray-200">
+                    <div className="flex flex-col">
+                        <label className="text-[10px] text-gray-500 font-bold uppercase ml-1">Desde</label>
+                        <input
+                            type="date"
+                            value={startDate}
+                            onChange={(e) => setStartDate(e.target.value)}
+                            className="px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-pp-gold/50"
+                        />
+                    </div>
+                    <div className="flex flex-col">
+                        <label className="text-[10px] text-gray-500 font-bold uppercase ml-1">Hasta</label>
+                        <input
+                            type="date"
+                            value={endDate}
+                            onChange={(e) => setEndDate(e.target.value)}
+                            className="px-3 py-2 bg-white border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-pp-gold/50"
+                        />
+                    </div>
+                    <Button onClick={fetchData} className="h-[38px] px-4" startIcon={<Search className="w-4 h-4" />}>
+                        Filtrar
+                    </Button>
                 </div>
             </div>
 
