@@ -8,6 +8,7 @@ import Card from '@/components/ui/Card'
 import Modal from '@/components/ui/Modal'
 import ModuleHeader from '@/components/ui/ModuleHeader'
 import ModuleTabs from '@/components/ui/ModuleTabs'
+import DateRangeFilter from '@/components/ui/DateRangeFilter'
 import PageHeader from '@/components/ui/PageHeader'
 import Badge from '@/components/ui/Badge'
 import DeliveryDetail from './DeliveryDetail'
@@ -17,6 +18,15 @@ export default function DeliveryList() {
     const [deliveries, setDeliveries] = useState<any[]>([])
     const [loading, setLoading] = useState(true)
     const [searchTerm, setSearchTerm] = useState('')
+
+    // Date Range State
+    const [startDate, setStartDate] = useState<string>(() => {
+        const date = new Date();
+        return new Date(date.getFullYear(), date.getMonth(), 1).toISOString().split('T')[0];
+    })
+    const [endDate, setEndDate] = useState<string>(() => {
+        return new Date().toISOString().split('T')[0];
+    })
 
     // Modal States
     const [selectedDelivery, setSelectedDelivery] = useState<any | null>(null)
@@ -32,9 +42,17 @@ export default function DeliveryList() {
 
     const fetchData = async () => {
         setLoading(true)
+        // Calculate Date Range
+        const startISO = new Date(startDate).toISOString()
+        const endISO = new Date(new Date(endDate).setHours(23, 59, 59)).toISOString()
+
         const [deliveriesReq, branchesReq] = await Promise.all([
             // Reverted to simple select to avoid 400 error due to missing FK
-            supabase.from('deliveries').select('*').order('created_at', { ascending: false }),
+            supabase.from('deliveries')
+                .select('*')
+                .gte('created_at', startISO)
+                .lte('created_at', endISO)
+                .order('created_at', { ascending: false }),
             supabase.from('branches').select('*').eq('is_active', true).order('name')
         ])
 
@@ -116,12 +134,23 @@ export default function DeliveryList() {
                 onSearchChange={setSearchTerm}
                 searchPlaceholder="Buscar por ID, domiciliario..."
                 actions={
-                    <Button
-                        onClick={() => handleEdit(null)}
-                        startIcon={<Plus className="h-4 w-4" />}
-                    >
-                        Nuevo Domicilio
-                    </Button>
+                    <div className="flex flex-col md:flex-row gap-3 items-end md:items-center">
+                        <DateRangeFilter
+                            startDate={startDate}
+                            endDate={endDate}
+                            onStartDateChange={setStartDate}
+                            onEndDateChange={setEndDate}
+                            onFilter={fetchData}
+                            loading={loading}
+                        />
+                        <Button
+                            onClick={() => handleEdit(null)}
+                            startIcon={<Plus className="h-4 w-4" />}
+                            className="w-full sm:w-auto h-[38px] mt-2 md:mt-0"
+                        >
+                            Nuevo Domicilio
+                        </Button>
+                    </div>
                 }
             />
 

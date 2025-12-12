@@ -8,6 +8,7 @@ import Badge from '@/components/ui/Badge'
 import Card from '@/components/ui/Card'
 import ModuleHeader from '@/components/ui/ModuleHeader'
 import ModuleTabs from '@/components/ui/ModuleTabs'
+import DateRangeFilter from '@/components/ui/DateRangeFilter'
 import PageHeader from '@/components/ui/PageHeader'
 import Modal from '@/components/ui/Modal'
 import OrderForm from './OrderForm'
@@ -20,6 +21,15 @@ export default function OrdersList() {
     const [loading, setLoading] = useState(true)
     const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null)
     const [searchTerm, setSearchTerm] = useState('')
+
+    // Date Range State
+    const [startDate, setStartDate] = useState<string>(() => {
+        const date = new Date();
+        return new Date(date.getFullYear(), date.getMonth(), 1).toISOString().split('T')[0];
+    })
+    const [endDate, setEndDate] = useState<string>(() => {
+        return new Date().toISOString().split('T')[0];
+    })
 
     // Modal States
     const [isModalOpen, setIsModalOpen] = useState(false)
@@ -42,6 +52,10 @@ export default function OrdersList() {
                 setBranches(branchesData)
             }
 
+            // Calculate Date Range
+            const startISO = new Date(startDate).toISOString()
+            const endISO = new Date(new Date(endDate).setHours(23, 59, 59)).toISOString()
+
             // Fetch Orders
             const { data, error } = await supabase
                 .from('purchase_orders')
@@ -60,6 +74,8 @@ export default function OrdersList() {
                     branch:branches(name),
                     requester:profiles!purchase_orders_requested_by_fkey(full_name)
                 `)
+                .gte('created_at', startISO)
+                .lte('created_at', endISO)
                 .order('created_at', { ascending: false })
 
             if (error) throw error
@@ -125,13 +141,23 @@ export default function OrdersList() {
                 onSearchChange={setSearchTerm}
                 searchPlaceholder="Buscar pedido, proveedor..."
                 actions={
-                    <Button
-                        onClick={handleCreateOrder}
-                        startIcon={<Plus className="h-4 w-4" />}
-                        className="w-full sm:w-auto"
-                    >
-                        Nuevo Pedido
-                    </Button>
+                    <div className="flex flex-col md:flex-row gap-3 items-end md:items-center">
+                        <DateRangeFilter
+                            startDate={startDate}
+                            endDate={endDate}
+                            onStartDateChange={setStartDate}
+                            onEndDateChange={setEndDate}
+                            onFilter={fetchData}
+                            loading={loading}
+                        />
+                        <Button
+                            onClick={handleCreateOrder}
+                            startIcon={<Plus className="h-4 w-4" />}
+                            className="w-full sm:w-auto h-[38px] mt-2 md:mt-0"
+                        >
+                            Nuevo Pedido
+                        </Button>
+                    </div>
                 }
             />
 

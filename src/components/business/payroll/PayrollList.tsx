@@ -10,6 +10,7 @@ import Button from '@/components/ui/Button'
 import Modal from '@/components/ui/Modal'
 import PayrollForm from './PayrollForm'
 import PayrollDetail from './PayrollDetail'
+import DateRangeFilter from '@/components/ui/DateRangeFilter'
 import { generatePaymentPeriods, PaymentPeriod } from '@/lib/period-generator'
 
 interface PayrollRecord {
@@ -44,6 +45,15 @@ export default function PayrollList() {
     const [selectedStatus, setSelectedStatus] = useState<string>('all')
     const [selectedPayroll, setSelectedPayroll] = useState<PayrollRecord | null>(null)
 
+    // Date Range State
+    const [startDate, setStartDate] = useState<string>(() => {
+        const date = new Date();
+        return new Date(date.getFullYear(), date.getMonth(), 1).toISOString().split('T')[0];
+    })
+    const [endDate, setEndDate] = useState<string>(() => {
+        return new Date().toISOString().split('T')[0];
+    })
+
     // Create new payment modal state
     const [isRegisterModalOpen, setIsRegisterModalOpen] = useState(false)
     const [initialPeriodToRegister, setInitialPeriodToRegister] = useState<PaymentPeriod | undefined>(undefined)
@@ -56,6 +66,10 @@ export default function PayrollList() {
     const fetchPayrolls = async () => {
         setLoading(true)
         try {
+            // Calculate Date Range
+            const startISO = new Date(startDate).toISOString()
+            const endISO = new Date(new Date(endDate).setHours(23, 59, 59)).toISOString()
+
             // 1. Fetch Registered Payrolls
             const { data: realPayrolls, error } = await supabase
                 .from('payroll')
@@ -64,6 +78,8 @@ export default function PayrollList() {
                     employees:employee_id (id, full_name, position, base_salary, salary_type, hire_date),
                     payroll_items (item_type, concept, amount)
                 `)
+                .gte('period_start', startISO)
+                .lte('period_start', endISO) // Filter by start date of period
                 .order('created_at', { ascending: false })
 
             if (error) throw error
@@ -82,8 +98,12 @@ export default function PayrollList() {
                     const periods = await generatePaymentPeriods(emp.id, emp.salary_type, emp.hire_date)
 
                     // Filter for Overdue or Pending periods that don't have a payment_id
+                    // AND fall within the selected date range
                     const missingPeriods = periods.filter(p =>
-                        (p.status === 'overdue' || (p.status === 'pending' && p.is_current)) && !p.payment_id
+                        (p.status === 'overdue' || (p.status === 'pending' && p.is_current)) &&
+                        !p.payment_id &&
+                        p.period_start >= startDate &&
+                        p.period_start <= endDate
                     )
 
                     // Convert to PayrollRecord format
@@ -310,6 +330,18 @@ export default function PayrollList() {
                     </Button>
                 </div>
             </Card>
+
+            {/* Date Filter */}
+            <div className="flex justify-end">
+                <DateRangeFilter
+                    startDate={startDate}
+                    endDate={endDate}
+                    onStartDateChange={setStartDate}
+                    onEndDateChange={setEndDate}
+                    onFilter={fetchPayrolls}
+                    loading={loading}
+                />
+            </div>
 
             {/* Status Tabs */}
             <div className="flex overflow-x-auto gap-2 p-1 bg-gray-200/50 rounded-lg max-w-full">
